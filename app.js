@@ -60,6 +60,6 @@ app.use(function(err, req, res, next) {
 app.listen(3000,function(){
     console.log("Server Start!");
 });
-res.json({ user: 'tobi' })
+
 
 module.exports = app;
