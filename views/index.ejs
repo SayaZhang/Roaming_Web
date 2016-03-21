@@ -7,10 +7,13 @@
     <title>定位及周边</title>
     <script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=8586fcc2621fba3c4a64a1a804a6e380"></script>
     <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
+    <script type="text/javascript" src="/javascripts/jquery-2.2.1.min.js"></script>
+    <script type="text/javascript" src="/javascripts/jquery.json.js"></script>
 <body>
 <div id='container'></div>
 <div id="tip"></div>
 <div id="panel"></div>
+<div class="json"></div>
 <script type="text/javascript">
     var map, geolocation;
     //加载地图，调用浏览器定位服务
@@ -84,20 +87,26 @@
             placeSearchShop.searchNearBy('', cpoint, 500, function(status, result){
                 console.log('购物服务:');
                 console.log(result.poiList.pois);
-                /*var obj = result.poiList.pois[0].address;
-                var url = toParameter(obj);
-                var aa = parseParameter(url);
-                alert(aa);*/
+
+                var json = $.toJSON( result.poiList.pois );
+                $(".json").append(json);
+
             });
 
             placeSearchFood.searchNearBy('', cpoint, 500, function(status, result){
                 console.log('餐饮服务:');
                 console.log(result.poiList.pois);
+
+                var json = $.toJSON( result.poiList.pois );
+                $(".json").append(json);
             });
 
             placeSearchLife.searchNearBy('', cpoint, 500, function(status, result){
                 console.log('生活服务:');
                 console.log(result.poiList.pois);
+                
+                var json = $.toJSON( result.poiList.pois );
+                $(".json").append(json);
             });
         });
     }
@@ -105,6 +114,10 @@
     function onError(data) {
         document.getElementById('tip').innerHTML = '定位失败';
     }
+
+    $("#panel").hide();
+
+
 </script>
 </body>
 </html>
