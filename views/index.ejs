@@ -9,6 +9,7 @@
     <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
     <script type="text/javascript" src="/javascripts/jquery-2.2.1.min.js"></script>
     <script type="text/javascript" src="/javascripts/jquery.json.js"></script>
+    
 <body>
 <div id='container'></div>
 <div id="tip"></div>
@@ -41,6 +42,7 @@
 
         
     });
+
     //解析定位结果
     function onComplete(data) {
         var str=['定位成功'];
@@ -88,8 +90,28 @@
                 console.log('购物服务:');
                 console.log(result.poiList.pois);
 
-                var json = $.toJSON( result.poiList.pois );
-                $(".json").append(json);
+                var jsonIn = $.toJSON( result.poiList.pois );
+                var json = result.poiList.pois;
+                $(".json").append(jsonIn);
+
+                for (var one in json)
+                {
+                    var name = json[one]['name'];
+                    var address = json[one]['address'];
+                    var text = "附近店铺名称为" + name + "位置" + address;
+                    console.log(text);  
+
+                    //语音
+                    var u = new SpeechSynthesisUtterance();
+                    u.text = text;
+                    u.lang = 'zh-CN';
+                    u.rate = 1.2;
+                    u.onend = function(event) { 
+                        console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
+                    }
+                    speechSynthesis.speak(u);                 
+                    
+                }               
 
             });
 
@@ -97,16 +119,57 @@
                 console.log('餐饮服务:');
                 console.log(result.poiList.pois);
 
-                var json = $.toJSON( result.poiList.pois );
-                $(".json").append(json);
+                var jsonIn = $.toJSON( result.poiList.pois );
+                $(".json").append(jsonIn);
+
+                var json = result.poiList.pois;
+                for (var one in json)
+                {
+                    var name = json[one]['name'];
+                    var address = json[one]['address'];
+                    var text = "附近餐厅名称为" + name + "位置" + address;
+                    console.log(text);  
+
+                    //语音
+                    var u = new SpeechSynthesisUtterance();
+                    u.text = text;
+                    u.lang = 'zh-CN';
+                    u.rate = 1.2;
+                    u.onend = function(event) { 
+                        console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
+                    }
+                    speechSynthesis.speak(u);                 
+                    
+                }               
+
             });
 
             placeSearchLife.searchNearBy('', cpoint, 500, function(status, result){
                 console.log('生活服务:');
                 console.log(result.poiList.pois);
                 
-                var json = $.toJSON( result.poiList.pois );
-                $(".json").append(json);
+                var jsonIn = $.toJSON( result.poiList.pois );
+                $(".json").append(jsonIn);
+
+                var json = result.poiList.pois;
+                for (var one in json)
+                {
+                    var name = json[one]['name'];
+                    var address = json[one]['address'];
+                    var text = "附近生活服务名称为" + name + "位置" + address;
+                    console.log(text);  
+
+                    //语音
+                    var u = new SpeechSynthesisUtterance();
+                    u.text = text;
+                    u.lang = 'zh-CN';
+                    u.rate = 1.2;
+                    u.onend = function(event) { 
+                        console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
+                    }
+                    speechSynthesis.speak(u);                 
+                    
+                }   
             });
         });
     }
@@ -117,6 +180,7 @@
 
     $("#panel").hide();
 
+   
 
 </script>
 </body>
