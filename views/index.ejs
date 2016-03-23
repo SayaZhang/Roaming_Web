@@ -182,7 +182,8 @@
 
             //构造路线导航类
             //根据起终点坐标规划步行路线
-            MWalk.search(cpoint, [104.002191,30.55291], function(status, result){
+            var desPoint = [104.002191,30.55291];
+            MWalk.search(cpoint, desPoint, function(status, result){
                     console.log(result.routes);
 
                     var json = result.routes;
