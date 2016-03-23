@@ -53,6 +53,8 @@
         document.getElementById('tip').innerHTML = str.join('<br>');
         console.log('经度：' + data.position.getLng()+'纬度：' + data.position.getLat());
 
+        var cpoint = [data.position.getLng(), data.position.getLat()];
+
         AMap.service(["AMap.PlaceSearch"], function() {
             var placeSearchShop = new AMap.PlaceSearch({ 
                 //构造地点查询类
@@ -82,9 +84,7 @@
                 city: "028", 
                 map: map,
                 panel: "panel"
-            });
-        
-            var cpoint = [data.position.getLng(), data.position.getLat()]; 
+            });             
 
             placeSearchShop.searchNearBy('', cpoint, 500, function(status, result){
                 console.log('购物服务:');
@@ -172,7 +172,49 @@
                 }   
             });
         });
+
+        //步行导航
+        AMap.service(["AMap.Walking"], function() {
+            var MWalk = new AMap.Walking({
+                map: map,
+                panel: "panel"
+            }); 
+
+            //构造路线导航类
+            //根据起终点坐标规划步行路线
+            MWalk.search(cpoint, [104.002191,30.55291], function(status, result){
+                    console.log(result.routes);
+
+                    var json = result.routes;
+                    for (var i in json)
+                    {
+                        var distance = json[i]['distance'];
+                        var text = "距离为" + distance + '米'
+                        var steps = json[i]['steps'];
+                        for (var j in steps)
+                        {
+                            var instruction = steps[j]['instruction'];
+                            text += instruction;
+                        }
+                        console.log(text);  
+
+                        //语音
+                        var u = new SpeechSynthesisUtterance();
+                        u.text = text;
+                        u.lang = 'zh-CN';
+                        u.rate = 1.2;
+                        u.onend = function(event) { 
+                            console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
+                        }
+                        speechSynthesis.speak(u);                 
+                        
+                    }   
+
+
+            });
+        });
     }
+
     //解析定位错误信息
     function onError(data) {
         document.getElementById('tip').innerHTML = '定位失败';
