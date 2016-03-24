@@ -9,12 +9,24 @@
     <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
     <script type="text/javascript" src="/javascripts/jquery-2.2.1.min.js"></script>
     <script type="text/javascript" src="/javascripts/jquery.json.js"></script>
+    <script type="text/javascript" src="/javascripts/hammer.min.js"></script>
+    <script type="text/javascript" src="/javascripts/jquery.hammer.js"></script>
     
 <body>
-<div id='container'></div>
-<div id="tip"></div>
-<div id="panel"></div>
-<div class="json"></div>
+<div id='container'>
+    <div id="tip"></div>
+    <div id="panel"></div>
+    <div class="json"></div> 
+</div>
+<div id="draw">
+    <input type="button" title="开启摄像头" value="开启摄像头" onclick="getMedia();" />
+    <br />  
+    <video height="120px" autoplay="autoplay"></video>
+    <hr />  
+    <input type="button" title="视频" value="视频" onclick="getVedio();" />
+    <br />  
+    <canvas id="canvas2" height="240px"></canvas> 
+</div>
 <script type="text/javascript">
     var map, geolocation;
     //加载地图，调用浏览器定位服务
@@ -138,7 +150,7 @@
                     u.onend = function(event) { 
                         console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
                     }
-                    speechSynthesis.speak(u);                 
+                    //speechSynthesis.speak(u);                 
                     
                 }               
 
@@ -167,7 +179,7 @@
                     u.onend = function(event) { 
                         console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
                     }
-                    speechSynthesis.speak(u);                 
+                    //speechSynthesis.speak(u);                 
                     
                 }   
             });
@@ -183,6 +195,8 @@
             //构造路线导航类
             //根据起终点坐标规划步行路线
             var desPoint = [104.002191,30.55291];
+            //按照关键词搜索
+            //walking.search([{keyword:'北京市地震局(公交站)',city:'北京'},{keyword:'望京西园4区',city:'北京'}], function(status, result)
             MWalk.search(cpoint, desPoint, function(status, result){
                     console.log(result.routes);
 
@@ -207,7 +221,7 @@
                         u.onend = function(event) { 
                             console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
                         }
-                        speechSynthesis.speak(u);                 
+                        //speechSynthesis.speak(u);                 
                         
                     }   
 
@@ -222,6 +236,126 @@
     }
 
     $("#panel").hide();
+    $("#tip").hide();
+    $(".json").hide();
+
+
+    var hammertime = $('#container').hammer();
+
+    hammertime.on('swift', function(ev) {
+
+            console.log(ev);
+
+    });
+
+     var video = document.querySelector('video');  
+        var audio, audioType;  
+  
+        var canvas2 = document.getElementById('canvas2');  
+        var context2 = canvas2.getContext('2d');  
+  
+        navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;  
+        window.URL = window.URL || window.webkitURL || window.mozURL || window.msURL;  
+  
+        var exArray = []; //存储设备源ID  
+        MediaStreamTrack.getSources(function (sourceInfos) {  
+            for (var i = 0; i != sourceInfos.length; ++i) {  
+                var sourceInfo = sourceInfos[i];  
+                //这里会遍历audio,video，所以要加以区分  
+                if (sourceInfo.kind === 'video') {  
+                    exArray.push(sourceInfo.id);  
+                }  
+            }  
+        });
+
+        function getMedia() {  
+            if (navigator.getUserMedia) {  
+                navigator.getUserMedia({  
+                    'video': {  
+                        'optional': [{  
+                            'sourceId': exArray[1] //0为前置摄像头，1为后置  
+                        }]  
+                    },  
+                    'audio':true  
+                }, successFunc, errorFunc);    //success是获取成功的回调函数  
+            }  
+            else {  
+                alert('Native device media streaming (getUserMedia) not supported in this browser.');  
+            }  
+        }  
+  
+        function successFunc(stream) {  
+            //alert('Succeed to get media!');  
+            if (video.mozSrcObject !== undefined) {  
+                //Firefox中，video.mozSrcObject最初为null，而不是未定义的，我们可以靠这个来检测Firefox的支持  
+                video.mozSrcObject = stream;  
+            }  
+            else {  
+                video.src = window.URL && window.URL.createObjectURL(stream) || stream;  
+            }  
+  
+            // 音频  
+            audio = new Audio();  
+            audioType = getAudioType(audio);  
+            if (audioType) {  
+                audio.src = 'polaroid.' + audioType;  
+                audio.play();  
+            }  
+        }  
+        function errorFunc(e) {  
+            alert('Error！'+e);  
+        }  
+  
+          
+        // 将视频帧绘制到Canvas对象上,Canvas每60ms切换帧，形成肉眼视频效果  
+        function drawVideoAtCanvas(video,context) {  
+            window.setInterval(function () {  
+                context.drawImage(video, 0, 0,180,240); //将图像画到画布上
+                transformImg(100);  //将画布上的图像转换成二值图像，阈值为100
+            }, 60);  
+        }
+
+        function transformImg(threshold){
+            var length = canvas2.width * canvas2.height;
+            //获取图像中所有像素
+            imageData = context2.getImageData(0,0,canvas2.width,canvas2.height);
+            //循环遍历imageData对象中的data属性，得到各像素的rgba值
+            for(var i=0;i<length * 4;i += 4){
+                var myRed = imageData.data[i];
+                var myGreen = imageData.data[i+1];
+                var myBlue = imageData.data[i+2];
+                myGary= parseInt((myRed+myGreen+myBlue) / 3);
+                myGary=myGary>threshold?255:0;
+                imageData.data[i] = myGary;
+                imageData.data[i+1] = myGary;
+                imageData.data[i+2] = myGary;
+            }
+            //将经过像素处理过的图像重新绘制在canvas元素中
+            context2.putImageData(imageData,0,0);
+        }  
+  
+        //获取音频格式  
+        function getAudioType(element) {  
+            if (element.canPlayType) {  
+                if (element.canPlayType('audio/mp4; codecs="mp4a.40.5"') !== '') {  
+                    return ('aac');  
+                } else if (element.canPlayType('audio/ogg; codecs="vorbis"') !== '') {  
+                    return ("ogg");  
+                }  
+            }  
+            return false;  
+        }  
+  
+        // vedio播放时触发，绘制vedio帧图像到canvas  
+        //video.addEventListener('play', function () {  
+        //drawVideoAtCanvas(video, context2);  
+        //}, false);  
+  
+        //视频  
+        function getVedio() {  
+            drawVideoAtCanvas(video, context2);  
+        } 
+
 
    
 
