@@ -20,11 +20,8 @@
 </div>
 <div id="draw">
     <input type="button" title="开启摄像头" value="开启摄像头" onclick="getMedia();" />
-    <br />  
-    <video height="120px" autoplay="autoplay"></video>
-    <hr />  
+    <video height="120px" autoplay="autoplay" id="media"></video>
     <input type="button" title="视频" value="视频" onclick="getVedio();" />
-    <br />  
     <canvas id="canvas2" height="240px"></canvas> 
 </div>
 <script type="text/javascript">
@@ -235,18 +232,31 @@
         document.getElementById('tip').innerHTML = '定位失败';
     }
 
+    //控制显示
     $("#panel").hide();
     $("#tip").hide();
     $(".json").hide();
+    $("#media").hide();
+    $('#canvas2').width(screen.width);
+    $('#canvas2').height(screen.height);
 
 
+    //document.write("屏幕尺寸："+screen.width+"*"+screen.height)
+
+    //调取摄像头
+    //getMedia();
+    //调取处理图像
+    //getVedio();
+
+
+/*
     var hammertime = $('#container').hammer();
 
     hammertime.on('swift', function(ev) {
 
             console.log(ev);
 
-    });
+    });*/
 
      var video = document.querySelector('video');  
         var audio, audioType;  
@@ -310,7 +320,7 @@
         // 将视频帧绘制到Canvas对象上,Canvas每60ms切换帧，形成肉眼视频效果  
         function drawVideoAtCanvas(video,context) {  
             window.setInterval(function () {  
-                context.drawImage(video, 0, 0,180,240); //将图像画到画布上
+                context.drawImage(video, 0, 0,canvas2.width,canvas2.height); //将图像画到画布上
                 transformImg(100);  //将画布上的图像转换成二值图像，阈值为100
             }, 60);  
         }
