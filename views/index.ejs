@@ -241,24 +241,14 @@
     $('#canvas2').height(screen.height);
 
 
-    //document.write("屏幕尺寸："+screen.width+"*"+screen.height)
+    //判断是否允许调用摄像头
+    navigator.getUserMedia  = navigator.getUserMedia ||
+                          navigator.webkitGetUserMedia ||
+                          navigator.mozGetUserMedia ||
+                          navigator.msGetUserMedia;
 
-    //调取摄像头
-    //getMedia();
-    //调取处理图像
-    //getVedio();
-
-
-/*
-    var hammertime = $('#container').hammer();
-
-    hammertime.on('swift', function(ev) {
-
-            console.log(ev);
-
-    });*/
-
-     var video = document.querySelector('video');  
+    if (navigator.getUserMedia) {
+        var video = document.querySelector('video');  
         var audio, audioType;  
   
         var canvas2 = document.getElementById('canvas2');  
@@ -364,7 +354,30 @@
         //视频  
         function getVedio() {  
             drawVideoAtCanvas(video, context2);  
-        } 
+        }
+    } else {
+        alert("no");
+    }
+
+
+    //document.write("屏幕尺寸："+screen.width+"*"+screen.height)
+
+    //调取摄像头
+    //getMedia();
+    //调取处理图像
+    //getVedio();
+
+
+/*
+    var hammertime = $('#container').hammer();
+
+    hammertime.on('swift', function(ev) {
+
+            console.log(ev);
+
+    });*/
+
+ 
 
 
    
