@@ -10,13 +10,15 @@
     <script type="text/javascript" src="/javascripts/jquery-2.2.1.min.js"></script>
     <script type="text/javascript" src="/javascripts/jquery.json.js"></script>
     <script type="text/javascript" src="/javascripts/hammer.js"></script>
-
+    <!-- 语音转文字 -->
     <script src="http://blog.faultylabs.com/files/md5.js"></script> 
     <script src="http://webapi.openspeech.cn/socket.io/socket.io.js"></script>
     <script src='http://webapi.openspeech.cn/js/util/zepto.min.js'></script>
     <script src='http://webapi.openspeech.cn/js/util/jwav.min.js'></script>
     <script src='http://webapi.openspeech.cn/fingerprint.js'></script>
     <script src="http://webapi.openspeech.cn/iat.min.js"></script>
+    <!-- 文字转语音 -->
+    <script src="http://webapi.openspeech.cn/tts.min.js"></script>
     
 <body>
 <div id='container'>
@@ -60,6 +62,7 @@
         var view = document.getElementById('draw');
         var mc = new Hammer(view);
         mc.get('pan').set({direction: Hammer.DIRECTION_ALL});
+
         //左滑事件
         mc.on("swipeleft",function(ev){
             console.log("左滑事件");
@@ -86,6 +89,7 @@
                 
             });    
         });
+
         //右滑事件
         mc.on("swiperight",function(ev){
             console.log("右滑事件");
@@ -113,6 +117,53 @@
         });
     }
 
+    function audio(text){
+        /**
+          * 初始化Session对象
+          */
+        var session = new IFlyTtsSession({
+                                      'url' : 'http://webapi.openspeech.cn/',
+                                      'interval' : '30000', 
+                                      'disconnect_hint' : 'disconnect',
+                                      'sub' : 'tts'
+                                 });
+        var audio = null;
+        
+        /**
+          * 输入文本，输出语音播放链接 
+          * @content 待合成文本(不超过4096字节)
+          */
+        function play(content) {
+            /***********************************************************以下签名过程需根据实际应用信息填入***************************************************/
+            // "56f3b3e8"   "8768a3e970020593"
+            // 54c88b8d    6a97bfd7fa4531f7
+            var appid = "56f3b3e8";                              //应用APPID，在open.voicecloud.cn上申请即可获得
+            var timestamp = new Date().toLocaleTimeString();                      //当前时间戳，例new Date().toLocaleTimeString()
+            var expires = 60000;                          //签名失效时间，单位:ms，例60000     
+            //!!!为避免secretkey泄露，签名函数调用代码建议在服务器上完成
+            var signature = faultylabs.MD5(appid + '&' + timestamp + '&' + expires + '&' + "8768a3e970020593");     
+           /************************************************************以上签名过程需根据实际应用信息填入**************************************************/
+           
+            var params = { "params" : "aue = speex-wb;7, ent = intp65, spd = 50, vol = 50, tte = utf8, caller.appid=" + appid + ",timestamp=" + timestamp + ",expires=" + expires, "signature" : signature, "gat" : "mp3"}; 
+            session.start(params, content, function (err, obj)
+            {
+                if(err) {
+                    alert("语音合成发生错误，错误代码 ：" + err);
+                } else {
+                    if(audio != null)
+                    {
+                        audio.pause();
+                    }
+                    audio = new Audio();
+                    audio.src = '';
+                    audio.play();
+                    audio.src = "http://webapi.openspeech.cn/" + obj.audio_url;
+                    audio.play();
+                }
+            });
+        };
+        play(text);
+    }
 
     function getSearch(data){
         var str=['定位成功'];
@@ -169,15 +220,7 @@
                     var textShop = "附近店铺名称为" + name + "位置" + address;
                     console.log(textShop);  
 
-                    //语音
-                    var u = new SpeechSynthesisUtterance();
-                    u.text = textShop;
-                    u.lang = 'zh-CN';
-                    u.rate = 1;
-                    u.onend = function(event) { 
-                        console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
-                    }
-                    speechSynthesis.speak(u);                 
+                    audio(textShop);               
                     
                 }             
 
@@ -195,15 +238,7 @@
                     var textFood = "附近餐厅名称为" + name + "位置" + address;
                     console.log(textFood);  
 
-                    //语音
-                    var u = new SpeechSynthesisUtterance();
-                    u.text = textFood;
-                    u.lang = 'zh-CN';
-                    u.rate = 1;
-                    u.onend = function(event) { 
-                        console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
-                    }
-                    speechSynthesis.speak(u);                 
+                    audio(textFood);                 
                     
                 }             
             });
@@ -220,15 +255,7 @@
                     var textLife = "附近生活服务名称为" + name + "位置" + address;
                     console.log(textLife);  
 
-                    //语音
-                    var u = new SpeechSynthesisUtterance();
-                    u.text = textLife;
-                    u.lang = 'zh-CN';
-                    u.rate = 1;
-                    u.onend = function(event) { 
-                        console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
-                    }
-                    speechSynthesis.speak(u);                 
+                    audio(textLife);                 
                     
                 } 
             });
@@ -252,6 +279,80 @@
                 panel: "panel"
             }); 
 
+            /**
+              * 初始化Session对象
+              */
+            var session = new IFlyIatSession({
+                                          'url' : 'http://webapi.openspeech.cn/',                           
+                                          'reconnection'       : true,
+                                          'reconnectionDelay'  : 30000,
+                                          'compress' : 'speex',
+                                          'speex_path' : '/javascripts/speex.js',              //speex.js本地路径 
+                                          'vad_path' : '/javascripts/vad.js',                  //vad.js本地路径
+                                          'recorder_path' : '/javascripts/recorderWorker.js'    //recordWorker.js本地路径
+                                     });
+            
+            /**
+              * 开启录音并获取识别结果
+              */
+            function start() {
+                /***********************************************************以下签名过程需根据实际应用信息填入***************************************************/
+                // "56f3b3e8"   "8768a3e970020593"
+                var appid = "56f3b3e8";                              //应用APPID，在open.voicecloud.cn上申请即可获得
+                var timestamp = new Date().toLocaleTimeString();;                      //当前时间戳，例new Date().toLocaleTimeString()
+                var expires = 60000;                          //签名失效时间，单位:ms，例60000      
+                //!!!为避免secretkey泄露，签名函数调用代码建议在服务器上完成
+                var secret_key = "8768a3e970020593";
+
+                var signature = faultylabs.MD5(appid + '&' + timestamp + '&' + expires + '&' + secret_key); 
+               /************************************************************以上签名过程需根据实际应用信息填入**************************************************/
+                var params = {"grammar_list" : null, "params" : "aue=speex-wb;-1, usr = mkchen, ssm = 1, sub = iat, net_type = wifi, ent =sms16k, rst = plain, auf  = audio/L16;rate=16000, vad_enable = 1, vad_timeout = 5000, vad_speech_tail = 500, caller.appid = " + appid + ",timestamp = " + timestamp + ",expires = " + expires, "signature" : signature};
+                
+                /* 调用开始录音接口，通过function(volume)和function(err, obj)回调音量和识别结果 */
+
+                session.start(params, function (volume)
+                {   
+                    /* 获取并展示当前录音音量 */           
+                    if(volume < 6 && volume > 0)
+                        console.log("volume : " + volume);
+                        
+                    /* 若volume返回负值，说明麦克风启动失败*/
+                    if(volume < 0)
+                        console.log("麦克风启动失败");
+                }, function (err, result)
+                {
+                    /* 若回调的err为空或错误码为0，则会话成功，可提取识别结果进行显示*/
+                    if(err == null || err == undefined || err == 0)
+                    {
+                        if(result == '' || result == null)
+                            document.getElementById('result').innerHTML = "没有获取到识别结果";
+                        else
+                            document.getElementById('result').innerHTML = result;
+                    /* 若回调的err不为空且错误码不为0，则会话失败，可提取错误码 */    
+                    } else
+                    {
+                        document.getElementById('result').innerHTML = 'error code : ' + err + ", error description : " + result;
+                    }
+                }, function(message)
+                {
+                    if(message == 'onStop')
+                    {
+                        console.log("录音停止");
+                    } else if(message == 'onEnd')
+                    {
+                        console.log("会话结束");
+                    }
+                }, function(data)
+                {
+                    //console.log(data);
+                });         
+                
+            };
+            
+            function stop() {
+                session.stop(null);
+            };
+
             //构造路线导航类
             //根据起终点坐标规划步行路线
             var desPoint = [104.002191,30.55291];
@@ -273,15 +374,7 @@
                         }
                         console.log(text);  
 
-                        //语音
-                        var u = new SpeechSynthesisUtterance();
-                        u.text = text;
-                        u.lang = 'zh-CN';
-                        u.rate = 1;
-                        u.onend = function(event) { 
-                            console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
-                        }
-                        speechSynthesis.speak(u);                 
+                        audio(text);                
                         
                     } 
                 return text;  
@@ -419,86 +512,6 @@
     } else {
         alert("抱歉，本浏览器不支持！");
     }
-
-
-
-    //
-    /**
-          * 初始化Session对象
-          */
-        var session = new IFlyIatSession({
-                                      'url' : 'http://webapi.openspeech.cn/',                           
-                                      'reconnection'       : true,
-                                      'reconnectionDelay'  : 30000,
-                                      'compress' : 'speex',
-                                      'speex_path' : '/javascripts/speex.js',              //speex.js本地路径 
-                                      'vad_path' : '/javascripts/vad.js',                  //vad.js本地路径
-                                      'recorder_path' : '/javascripts/recorderWorker.js'    //recordWorker.js本地路径
-                                 });
-        
-        /**
-          * 开启录音并获取识别结果
-          */
-        function start() {
-            /***********************************************************以下签名过程需根据实际应用信息填入***************************************************/
-            // "56f3b3e8"   "8768a3e970020593"
-            var appid = "56f3b3e8";                              //应用APPID，在open.voicecloud.cn上申请即可获得
-            var timestamp = new Date().toLocaleTimeString();;                      //当前时间戳，例new Date().toLocaleTimeString()
-            var expires = 60000;                          //签名失效时间，单位:ms，例60000      
-            //!!!为避免secretkey泄露，签名函数调用代码建议在服务器上完成
-            var secret_key = "8768a3e970020593";
-
-            var signature = faultylabs.MD5(appid + '&' + timestamp + '&' + expires + '&' + secret_key); 
-           /************************************************************以上签名过程需根据实际应用信息填入**************************************************/
-            var params = {"grammar_list" : null, "params" : "aue=speex-wb;-1, usr = mkchen, ssm = 1, sub = iat, net_type = wifi, ent =sms16k, rst = plain, auf  = audio/L16;rate=16000, vad_enable = 1, vad_timeout = 5000, vad_speech_tail = 500, caller.appid = " + appid + ",timestamp = " + timestamp + ",expires = " + expires, "signature" : signature};
-            
-            /* 调用开始录音接口，通过function(volume)和function(err, obj)回调音量和识别结果 */
-
-            session.start(params, function (volume)
-            {   
-                /* 获取并展示当前录音音量 */           
-                if(volume < 6 && volume > 0)
-                    console.log("volume : " + volume);
-                    
-                /* 若volume返回负值，说明麦克风启动失败*/
-                if(volume < 0)
-                    console.log("麦克风启动失败");
-            }, function (err, result)
-            {
-                /* 若回调的err为空或错误码为0，则会话成功，可提取识别结果进行显示*/
-                if(err == null || err == undefined || err == 0)
-                {
-                    if(result == '' || result == null)
-                        document.getElementById('result').innerHTML = "没有获取到识别结果";
-                    else
-                        document.getElementById('result').innerHTML = result;
-                /* 若回调的err不为空且错误码不为0，则会话失败，可提取错误码 */    
-                } else
-                {
-                    document.getElementById('result').innerHTML = 'error code : ' + err + ", error description : " + result;
-                }
-            }, function(message)
-            {
-                if(message == 'onStop')
-                {
-                    console.log("录音停止");
-                } else if(message == 'onEnd')
-                {
-                    console.log("会话结束");
-                }
-            }, function(data)
-            {
-                console.log(data);
-            });         
-            
-        };
-        
-        function stop() {
-            // alert("jjjj");
-            session.stop(null);
-        };
-
- 
 
 </script>
 </body>
