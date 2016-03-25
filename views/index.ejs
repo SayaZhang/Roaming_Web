@@ -9,62 +9,123 @@
     <script type="text/javascript" src="http://cache.amap.com/lbs/static/addToolbar.js"></script>
     <script type="text/javascript" src="/javascripts/jquery-2.2.1.min.js"></script>
     <script type="text/javascript" src="/javascripts/jquery.json.js"></script>
-    <script type="text/javascript" src="/javascripts/hammer.min.js"></script>
-    <script type="text/javascript" src="/javascripts/jquery.hammer.js"></script>
+    <script type="text/javascript" src="/javascripts/hammer.js"></script>
+
+    <script src="http://blog.faultylabs.com/files/md5.js"></script> 
+    <script src="http://webapi.openspeech.cn/socket.io/socket.io.js"></script>
+    <script src='http://webapi.openspeech.cn/js/util/zepto.min.js'></script>
+    <script src='http://webapi.openspeech.cn/js/util/jwav.min.js'></script>
+    <script src='http://webapi.openspeech.cn/fingerprint.js'></script>
+    <script src="http://webapi.openspeech.cn/iat.min.js"></script>
     
 <body>
 <div id='container'>
     <div id="tip"></div>
     <div id="panel"></div>
-    <div class="json"></div> 
 </div>
+
+
 <div id="draw">
     <input type="button" title="开启摄像头" value="开启摄像头" onclick="getMedia();" />
     <video height="120px" autoplay="autoplay" id="media"></video>
     <input type="button" title="视频" value="视频" onclick="getVedio();" />
-    <canvas id="canvas2" height="240px"></canvas> 
+    <canvas id="canvas2"></canvas> 
 </div>
+<div>
+    <textarea id="result"></textarea>
+    <input type="button" value="录音" onclick="start();"  />
+    <input type="button" value="结束" onclick="stop();"  />
+</div>
+
 <script type="text/javascript">
+    init();
+
     var map, geolocation;
-    //加载地图，调用浏览器定位服务
+            //加载地图，调用浏览器定位服务
     map = new AMap.Map('container', {
         resizeEnable: true
     });
-    map.plugin('AMap.Geolocation', function() {
-        geolocation = new AMap.Geolocation({
-            enableHighAccuracy: true,
-            //是否使用高精度定位，默认:true
-            timeout: 10000,          
-            //超过10秒后停止定位，默认：无穷大
-            buttonOffset: new AMap.Pixel(10, 20),
-            //定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
-            zoomToAccuracy: true,      
-            //定位成功后调整地图视野范围使定位位置及精度范围视野内可见
-            buttonPosition:'RB'
-        });
-        map.addControl(geolocation);
-        geolocation.getCurrentPosition();
-        AMap.event.addListener(geolocation, 'complete', onComplete);
-        //返回定位信息
-        AMap.event.addListener(geolocation, 'error', onError);      
-        //返回定位出错信息
+
+    //控制显示初始化
+    function init(){
+
+        $("#panel").hide();
+        $("#tip").hide();
+        $("#media").hide();
+        $('#canvas2').width(screen.width);
+        $('#canvas2').height(screen.height);
 
         
-    });
 
-    //解析定位结果
-    function onComplete(data) {
+        var view = document.getElementById('draw');
+        var mc = new Hammer(view);
+        mc.get('pan').set({direction: Hammer.DIRECTION_ALL});
+        //左滑事件
+        mc.on("swipeleft",function(ev){
+            console.log("左滑事件");
+            
+            map.plugin('AMap.Geolocation', function() {
+                geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,
+                    //是否使用高精度定位，默认:true
+                    timeout: 10000,          
+                    //超过10秒后停止定位，默认：无穷大
+                    buttonOffset: new AMap.Pixel(10, 20),
+                    //定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+                    zoomToAccuracy: true,      
+                    //定位成功后调整地图视野范围使定位位置及精度范围视野内可见
+                    buttonPosition:'RB'
+                });
+                map.addControl(geolocation);
+                geolocation.getCurrentPosition();
+                AMap.event.addListener(geolocation, 'complete', getSearch);
+                //返回定位信息
+                AMap.event.addListener(geolocation, 'error', onError);      
+                //返回定位出错信息
+
+                
+            });    
+        });
+        //右滑事件
+        mc.on("swiperight",function(ev){
+            console.log("右滑事件");
+            map.plugin('AMap.Geolocation', function() {
+                geolocation = new AMap.Geolocation({
+                    enableHighAccuracy: true,
+                    //是否使用高精度定位，默认:true
+                    timeout: 10000,          
+                    //超过10秒后停止定位，默认：无穷大
+                    buttonOffset: new AMap.Pixel(10, 20),
+                    //定位按钮与设置的停靠位置的偏移量，默认：Pixel(10, 20)
+                    zoomToAccuracy: true,      
+                    //定位成功后调整地图视野范围使定位位置及精度范围视野内可见
+                    buttonPosition:'RB'
+                });
+                map.addControl(geolocation);
+                geolocation.getCurrentPosition();
+                AMap.event.addListener(geolocation, 'complete', getNavigation);
+                //返回定位信息
+                AMap.event.addListener(geolocation, 'error', onError);      
+                //返回定位出错信息
+
+                
+            });    
+        });
+    }
+
+
+    function getSearch(data){
         var str=['定位成功'];
         str.push('经度：' + data.position.getLng());
         str.push('纬度：' + data.position.getLat());
         str.push('精度：' + data.accuracy + ' 米');
         str.push('是否经过偏移：' + (data.isConverted ? '是' : '否'));
-        document.getElementById('tip').innerHTML = str.join('<br>');
+        //document.getElementById('tip').innerHTML = str.join('<br>');
         console.log('经度：' + data.position.getLng()+'纬度：' + data.position.getLat());
 
         var cpoint = [data.position.getLng(), data.position.getLat()];
 
-        AMap.service(["AMap.PlaceSearch"], function() {
+        var search = AMap.service(["AMap.PlaceSearch"], function() {
             var placeSearchShop = new AMap.PlaceSearch({ 
                 //构造地点查询类
                 pageSize: 5,
@@ -99,28 +160,26 @@
                 console.log('购物服务:');
                 console.log(result.poiList.pois);
 
-                var jsonIn = $.toJSON( result.poiList.pois );
                 var json = result.poiList.pois;
-                $(".json").append(jsonIn);
 
                 for (var one in json)
                 {
                     var name = json[one]['name'];
                     var address = json[one]['address'];
-                    var text = "附近店铺名称为" + name + "位置" + address;
-                    console.log(text);  
+                    var textShop = "附近店铺名称为" + name + "位置" + address;
+                    console.log(textShop);  
 
                     //语音
                     var u = new SpeechSynthesisUtterance();
-                    u.text = text;
+                    u.text = textShop;
                     u.lang = 'zh-CN';
-                    u.rate = 1.2;
+                    u.rate = 1;
                     u.onend = function(event) { 
                         console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
                     }
                     speechSynthesis.speak(u);                 
                     
-                }               
+                }             
 
             });
 
@@ -128,62 +187,66 @@
                 console.log('餐饮服务:');
                 console.log(result.poiList.pois);
 
-                var jsonIn = $.toJSON( result.poiList.pois );
-                $(".json").append(jsonIn);
-
                 var json = result.poiList.pois;
                 for (var one in json)
                 {
                     var name = json[one]['name'];
                     var address = json[one]['address'];
-                    var text = "附近餐厅名称为" + name + "位置" + address;
-                    console.log(text);  
+                    var textFood = "附近餐厅名称为" + name + "位置" + address;
+                    console.log(textFood);  
 
                     //语音
                     var u = new SpeechSynthesisUtterance();
-                    u.text = text;
+                    u.text = textFood;
                     u.lang = 'zh-CN';
-                    u.rate = 1.2;
+                    u.rate = 1;
                     u.onend = function(event) { 
                         console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
                     }
-                    //speechSynthesis.speak(u);                 
+                    speechSynthesis.speak(u);                 
                     
-                }               
-
+                }             
             });
 
             placeSearchLife.searchNearBy('', cpoint, 500, function(status, result){
                 console.log('生活服务:');
                 console.log(result.poiList.pois);
-                
-                var jsonIn = $.toJSON( result.poiList.pois );
-                $(".json").append(jsonIn);
 
                 var json = result.poiList.pois;
                 for (var one in json)
                 {
                     var name = json[one]['name'];
                     var address = json[one]['address'];
-                    var text = "附近生活服务名称为" + name + "位置" + address;
-                    console.log(text);  
+                    var textLife = "附近生活服务名称为" + name + "位置" + address;
+                    console.log(textLife);  
 
                     //语音
                     var u = new SpeechSynthesisUtterance();
-                    u.text = text;
+                    u.text = textLife;
                     u.lang = 'zh-CN';
-                    u.rate = 1.2;
+                    u.rate = 1;
                     u.onend = function(event) { 
                         console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
                     }
-                    //speechSynthesis.speak(u);                 
+                    speechSynthesis.speak(u);                 
                     
-                }   
+                } 
             });
         });
+    }
 
-        //步行导航
-        AMap.service(["AMap.Walking"], function() {
+    function getNavigation(data){
+        var str=['定位成功'];
+        str.push('经度：' + data.position.getLng());
+        str.push('纬度：' + data.position.getLat());
+        str.push('精度：' + data.accuracy + ' 米');
+        str.push('是否经过偏移：' + (data.isConverted ? '是' : '否'));
+        //document.getElementById('tip').innerHTML = str.join('<br>');
+        console.log('经度：' + data.position.getLng()+'纬度：' + data.position.getLat());
+
+        var cpoint = [data.position.getLng(), data.position.getLat()];
+
+        var navigation = AMap.service(["AMap.Walking"], function() {
             var MWalk = new AMap.Walking({
                 map: map,
                 panel: "panel"
@@ -214,31 +277,29 @@
                         var u = new SpeechSynthesisUtterance();
                         u.text = text;
                         u.lang = 'zh-CN';
-                        u.rate = 1.2;
+                        u.rate = 1;
                         u.onend = function(event) { 
                             console.log('Finished in ' + event.elapsedTime + ' seconds.'); 
                         }
-                        //speechSynthesis.speak(u);                 
+                        speechSynthesis.speak(u);                 
                         
-                    }   
+                    } 
+                return text;  
 
 
             });
+
         });
     }
+
+
 
     //解析定位错误信息
     function onError(data) {
         document.getElementById('tip').innerHTML = '定位失败';
     }
 
-    //控制显示
-    $("#panel").hide();
-    $("#tip").hide();
-    $(".json").hide();
-    $("#media").hide();
-    $('#canvas2').width(screen.width);
-    $('#canvas2').height(screen.height);
+    
 
 
     //判断是否允许调用摄像头
@@ -356,31 +417,88 @@
             drawVideoAtCanvas(video, context2);  
         }
     } else {
-        alert("no");
+        alert("抱歉，本浏览器不支持！");
     }
 
 
-    //document.write("屏幕尺寸："+screen.width+"*"+screen.height)
 
-    //调取摄像头
-    //getMedia();
-    //调取处理图像
-    //getVedio();
+    //
+    /**
+          * 初始化Session对象
+          */
+        var session = new IFlyIatSession({
+                                      'url' : 'http://webapi.openspeech.cn/',                           
+                                      'reconnection'       : true,
+                                      'reconnectionDelay'  : 30000,
+                                      'compress' : 'speex',
+                                      'speex_path' : '/javascripts/speex.js',              //speex.js本地路径 
+                                      'vad_path' : '/javascripts/vad.js',                  //vad.js本地路径
+                                      'recorder_path' : '/javascripts/recorderWorker.js'    //recordWorker.js本地路径
+                                 });
+        
+        /**
+          * 开启录音并获取识别结果
+          */
+        function start() {
+            /***********************************************************以下签名过程需根据实际应用信息填入***************************************************/
+            // "56f3b3e8"   "8768a3e970020593"
+            var appid = "56f3b3e8";                              //应用APPID，在open.voicecloud.cn上申请即可获得
+            var timestamp = new Date().toLocaleTimeString();;                      //当前时间戳，例new Date().toLocaleTimeString()
+            var expires = 60000;                          //签名失效时间，单位:ms，例60000      
+            //!!!为避免secretkey泄露，签名函数调用代码建议在服务器上完成
+            var secret_key = "8768a3e970020593";
 
+            var signature = faultylabs.MD5(appid + '&' + timestamp + '&' + expires + '&' + secret_key); 
+           /************************************************************以上签名过程需根据实际应用信息填入**************************************************/
+            var params = {"grammar_list" : null, "params" : "aue=speex-wb;-1, usr = mkchen, ssm = 1, sub = iat, net_type = wifi, ent =sms16k, rst = plain, auf  = audio/L16;rate=16000, vad_enable = 1, vad_timeout = 5000, vad_speech_tail = 500, caller.appid = " + appid + ",timestamp = " + timestamp + ",expires = " + expires, "signature" : signature};
+            
+            /* 调用开始录音接口，通过function(volume)和function(err, obj)回调音量和识别结果 */
 
-/*
-    var hammertime = $('#container').hammer();
-
-    hammertime.on('swift', function(ev) {
-
-            console.log(ev);
-
-    });*/
+            session.start(params, function (volume)
+            {   
+                /* 获取并展示当前录音音量 */           
+                if(volume < 6 && volume > 0)
+                    console.log("volume : " + volume);
+                    
+                /* 若volume返回负值，说明麦克风启动失败*/
+                if(volume < 0)
+                    console.log("麦克风启动失败");
+            }, function (err, result)
+            {
+                /* 若回调的err为空或错误码为0，则会话成功，可提取识别结果进行显示*/
+                if(err == null || err == undefined || err == 0)
+                {
+                    if(result == '' || result == null)
+                        document.getElementById('result').innerHTML = "没有获取到识别结果";
+                    else
+                        document.getElementById('result').innerHTML = result;
+                /* 若回调的err不为空且错误码不为0，则会话失败，可提取错误码 */    
+                } else
+                {
+                    document.getElementById('result').innerHTML = 'error code : ' + err + ", error description : " + result;
+                }
+            }, function(message)
+            {
+                if(message == 'onStop')
+                {
+                    console.log("录音停止");
+                } else if(message == 'onEnd')
+                {
+                    console.log("会话结束");
+                }
+            }, function(data)
+            {
+                console.log(data);
+            });         
+            
+        };
+        
+        function stop() {
+            // alert("jjjj");
+            session.stop(null);
+        };
 
  
-
-
-   
 
 </script>
 </body>
